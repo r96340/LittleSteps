@@ -30,7 +30,6 @@ public class CounterService extends Service {
 
     // 初始化進度快取
     private static final String PREFS_NAME = "CounterServicePrefs";
-    private static final String KEY_SECONDS_PASSED = "secondsPassed";
     private static final String KEY_CYCLE = "cycle";
     private static final String KEY_SUBCYCLE = "subcycle";
 
@@ -113,7 +112,6 @@ public class CounterService extends Service {
     private void saveCounterState() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt(KEY_SECONDS_PASSED, secondsPassed);
         editor.putInt(KEY_CYCLE, cycle);
         editor.putInt(KEY_SUBCYCLE, subcycle);
         editor.apply();
@@ -122,7 +120,6 @@ public class CounterService extends Service {
 
     private void loadCounterState() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        secondsPassed = prefs.getInt(KEY_SECONDS_PASSED, 0);
         cycle = prefs.getInt(KEY_CYCLE, 1);
         subcycle = prefs.getInt(KEY_SUBCYCLE, 1);
         Log.d("CounterService", "Counter state loaded.");
