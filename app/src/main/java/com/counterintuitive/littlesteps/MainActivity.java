@@ -23,6 +23,8 @@ public class MainActivity extends AppCompatActivity {
 
     //計數器變數
     private int secondsPassed = 0;
+    private int cycle = 1;
+    private int subcycle = 1;
     private Handler timerHandler = new Handler();
     private TextView counterTextView;
     //計數器子程式
@@ -30,8 +32,13 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             secondsPassed++;
-            counterTextView.setText("自本應用程式開啟以來已經過 \n" + secondsPassed + "\n 秒");
+            counterTextView.setText("目標秒數 " + cycle + " 第 " + subcycle + " 輪\n" +
+                    secondsPassed + "\n 秒");
             timerHandler.postDelayed(this, 1000);
+            if(secondsPassed == cycle){
+                secondsPassed = 0;
+                cycle++;
+            }
         }
     };
 
