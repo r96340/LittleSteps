@@ -80,7 +80,6 @@ public class CounterService extends Service {
                 if (subcycle == cycle) { cycle++; subcycle = 1; } else subcycle++;
                 shouldRest = !shouldRest;
                 isSubcycleRenewed = true;
-                vibrate(getApplicationContext());
             } else isSubcycleRenewed = false;
             timerHandler.postDelayed(this, 1000);
         }
@@ -175,6 +174,7 @@ public class CounterService extends Service {
         );
         int color = shouldRest ? Color.BLUE : Color.RED;
         boolean shouldRing = !isSubcycleRenewed;
+        if (isSubcycleRenewed) vibrate(getApplicationContext());
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Background Counter")
                 .setContentText(text)
