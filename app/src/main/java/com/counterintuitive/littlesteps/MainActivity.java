@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
             timerHandler.postDelayed(this, 1000);
             if(secondsPassed == cycle){
                 secondsPassed = 0;
-                cycle++;
+                if(subcycle == cycle){ cycle++; subcycle = 1; } else subcycle++;
             }
         }
     };
