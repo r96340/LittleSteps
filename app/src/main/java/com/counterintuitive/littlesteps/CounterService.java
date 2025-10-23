@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -25,6 +26,12 @@ import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 public class CounterService extends Service {
+
+    // 初始化進度快取
+    private static final String PREFS_NAME = "CounterServicePrefs";
+    private static final String KEY_SECONDS_PASSED = "secondsPassed";
+    private static final String KEY_CYCLE = "cycle";
+    private static final String KEY_SUBCYCLE = "subcycle";
 
     // 宣告通知相關常數
     public static final String ACTION_COUNTER_UPDATE = "com.counterintuitive.littlesteps.COUNTER_UPDATE";
@@ -84,6 +91,7 @@ public class CounterService extends Service {
     public void onCreate() {
         super.onCreate();
         notificationManager = getSystemService(NotificationManager.class);
+        loadCounterState();
         createNotificationChannel();
         registerReceiver(stopServiceReceiver, new IntentFilter(ACTION_STOP_SERVICE), RECEIVER_NOT_EXPORTED);
     }
@@ -96,6 +104,7 @@ public class CounterService extends Service {
             stopSelf();
             return START_NOT_STICKY;
         }
+        loadCounterState();
         Notification notification = createNotification("Counter service is running...");
         startForeground(NOTIFICATION_ID, notification);
         timerHandler.post(timerRunnable);
@@ -103,11 +112,38 @@ public class CounterService extends Service {
         return START_STICKY;
     }
 
+    private void saveCounterState() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt(KEY_SECONDS_PASSED, secondsPassed);
+        editor.putInt(KEY_CYCLE, cycle);
+        editor.putInt(KEY_SUBCYCLE, subcycle);
+        editor.apply();
+        Log.d("CounterService", "Counter state saved.");
+    }
+
+    private void loadCounterState() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        secondsPassed = prefs.getInt(KEY_SECONDS_PASSED, 0);
+        cycle = prefs.getInt(KEY_CYCLE, 1);
+        subcycle = prefs.getInt(KEY_SUBCYCLE, 1);
+        Log.d("CounterService", "Counter state loaded.");
+    }
+
+    private void resetCounterState() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.clear();
+        editor.apply();
+        Log.d("CounterService", "Counter state reset.");
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
         timerHandler.removeCallbacks(timerRunnable);
         unregisterReceiver(stopServiceReceiver);
+        saveCounterState();
         Log.d("CounterService", "Service destroyed.");
     }
 
@@ -151,7 +187,6 @@ public class CounterService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (ACTION_STOP_SERVICE.equals(intent.getAction())) {
-                // To stop the service, we send an Intent to the service itself
                 Intent stopServiceIntent = new Intent(context, CounterService.class);
                 stopServiceIntent.setAction(ACTION_STOP_SERVICE);
                 context.startService(stopServiceIntent);
