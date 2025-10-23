@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -45,6 +46,7 @@ public class CounterService extends Service {
     private int subcycle = 1;
     private final Handler timerHandler = new Handler();
     private NotificationManager notificationManager;
+    private boolean shouldRest = false;
 
     // 宣告停止按鈕的廣播接收器
     public static final String ACTION_STOP_SERVICE = "com.counterintuitive.littlesteps.STOP_SERVICE";
@@ -79,6 +81,7 @@ public class CounterService extends Service {
                 } else {
                     subcycle++;
                 }
+                shouldRest = !shouldRest;
                 playSound(getApplicationContext());
             }
 
@@ -174,10 +177,12 @@ public class CounterService extends Service {
                 stopBroadcastIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
+        int color = shouldRest ? Color.BLUE : Color.RED;
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Background Counter")
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setColor(color)
                 .setOnlyAlertOnce(true)
                 .addAction(0, "停止計數器", stopPendingIntent)
                 .build();
