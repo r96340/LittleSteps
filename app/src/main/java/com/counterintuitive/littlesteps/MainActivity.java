@@ -1,27 +1,39 @@
 package com.counterintuitive.littlesteps;
 
 import android.os.Bundle;
-
-import com.google.android.material.snackbar.Snackbar;
+import android.os.Handler;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-
-import android.view.View;
-
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.counterintuitive.littlesteps.databinding.ActivityMainBinding;
-
-import android.view.Menu;
-import android.view.MenuItem;
+import com.google.android.material.snackbar.Snackbar;
 
 public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
+
+    //計數器變數
+    private int secondsPassed = 0;
+    private Handler timerHandler = new Handler();
+    private TextView counterTextView;
+    //計數器子程式
+    private Runnable timerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            secondsPassed++;
+            counterTextView.setText("自本應用程式開啟以來已經過 \n" + secondsPassed + "\n 秒");
+            timerHandler.postDelayed(this, 1000);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +41,9 @@ public class MainActivity extends AppCompatActivity {
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        //初始化計數器
+        counterTextView = findViewById(R.id.counter_text_view);
 
         setSupportActionBar(binding.toolbar);
 
@@ -44,6 +59,16 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+    }
+
+    protected void onStart() {
+        super.onStart();
+        timerHandler.post(timerRunnable);
+    }
+
+    protected void onStop() {
+        super.onStop();
+        timerHandler.removeCallbacks(timerRunnable);
     }
 
     @Override
