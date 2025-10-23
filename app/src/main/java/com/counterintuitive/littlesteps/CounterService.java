@@ -4,10 +4,16 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -46,6 +52,7 @@ public class CounterService extends Service {
                 } else {
                     subcycle++;
                 }
+                playSound(getApplicationContext());
             }
 
             timerHandler.postDelayed(this, 1000);
@@ -110,5 +117,23 @@ public class CounterService extends Service {
         Intent intent = new Intent(ACTION_COUNTER_UPDATE);
         intent.putExtra(EXTRA_COUNTER_TEXT, counterText);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+    private void playSound(Context context) {
+        try {
+            // 通知音
+            Uri notificationSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            Ringtone r = RingtoneManager.getRingtone(context, notificationSoundUri);
+            r.play();
+            // 震動
+            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                v.vibrate(500);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
