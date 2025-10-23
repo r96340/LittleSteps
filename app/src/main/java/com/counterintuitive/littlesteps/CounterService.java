@@ -32,13 +32,12 @@ public class CounterService extends Service {
         public void run() {
             secondsPassed++;
             String counterText = "目標秒數 " + cycle + " 第 " + subcycle + " 輪\n" + secondsPassed + " 秒";
-
-            // Update the foreground notification
+            // 將計數器的狀態更新到通知欄
             updateNotification(counterText);
-
-            // Send a broadcast to update the UI in MainActivity if it's open
+            // 將計數器的狀態更新到主UI
             sendBroadcastToActivity(counterText);
 
+            // 對數式遞增計數器
             if (secondsPassed == cycle) {
                 secondsPassed = 0;
                 if (subcycle == cycle) {
@@ -48,7 +47,7 @@ public class CounterService extends Service {
                     subcycle++;
                 }
             }
-            // Schedule the next run
+
             timerHandler.postDelayed(this, 1000);
         }
     };
@@ -62,23 +61,16 @@ public class CounterService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // Start the service as a foreground service
         Notification notification = createNotification("Counter service is running...");
         startForeground(NOTIFICATION_ID, notification);
-
-        // Start the counter
         timerHandler.post(timerRunnable);
-
         Log.d("CounterService", "Service started.");
-
-        // If the service is killed, it will be automatically restarted
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        // Stop the timer when the service is destroyed
         timerHandler.removeCallbacks(timerRunnable);
         Log.d("CounterService", "Service destroyed.");
     }
@@ -86,13 +78,10 @@ public class CounterService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        // We don't provide binding, so return null
         return null;
     }
 
     private void createNotificationChannel() {
-        // Create the NotificationChannel, but only on API 26+ because
-        // the NotificationChannel class is new and not in the support library
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel serviceChannel = new NotificationChannel(
                     CHANNEL_ID,
@@ -107,8 +96,8 @@ public class CounterService extends Service {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Background Counter")
                 .setContentText(text)
-                .setSmallIcon(R.drawable.ic_launcher_foreground) // Make sure you have this icon
-                .setOnlyAlertOnce(true) // Don't make a sound for every update
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setOnlyAlertOnce(true)
                 .build();
     }
 
