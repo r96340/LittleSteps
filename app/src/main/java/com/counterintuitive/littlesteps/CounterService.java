@@ -3,9 +3,12 @@ package com.counterintuitive.littlesteps;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -17,21 +20,38 @@ import android.os.Vibrator;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 public class CounterService extends Service {
 
+    // 宣告通知相關常數
     public static final String ACTION_COUNTER_UPDATE = "com.counterintuitive.littlesteps.COUNTER_UPDATE";
     public static final String EXTRA_COUNTER_TEXT = "extra_counter_text";
     private static final String CHANNEL_ID = "CounterServiceChannel";
     private static final int NOTIFICATION_ID = 1;
 
+    // 宣告計數器相關變數
     private int secondsPassed = 0;
     private int cycle = 1;
     private int subcycle = 1;
     private final Handler timerHandler = new Handler();
     private NotificationManager notificationManager;
+
+    // 宣告停止按鈕的廣播接收器
+    public static final String ACTION_STOP_SERVICE = "com.counterintuitive.littlesteps.STOP_SERVICE";
+    private final BroadcastReceiver stopServiceReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (ACTION_STOP_SERVICE.equals(intent.getAction())) {
+                timerHandler.removeCallbacks(timerRunnable);
+                stopForeground(true);
+                stopSelf();
+                Log.d("CounterService", "Service stopped via notification action.");
+            }
+        }
+    };
 
     private final Runnable timerRunnable = new Runnable() {
         @Override
@@ -59,15 +79,23 @@ public class CounterService extends Service {
         }
     };
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public void onCreate() {
         super.onCreate();
         notificationManager = getSystemService(NotificationManager.class);
         createNotificationChannel();
+        registerReceiver(stopServiceReceiver, new IntentFilter(ACTION_STOP_SERVICE), RECEIVER_NOT_EXPORTED);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && ACTION_STOP_SERVICE.equals(intent.getAction())) {
+            Log.d("CounterService", "Stopping service from onStartCommand.");
+            stopForeground(true);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         Notification notification = createNotification("Counter service is running...");
         startForeground(NOTIFICATION_ID, notification);
         timerHandler.post(timerRunnable);
@@ -79,6 +107,7 @@ public class CounterService extends Service {
     public void onDestroy() {
         super.onDestroy();
         timerHandler.removeCallbacks(timerRunnable);
+        unregisterReceiver(stopServiceReceiver);
         Log.d("CounterService", "Service destroyed.");
     }
 
@@ -99,13 +128,36 @@ public class CounterService extends Service {
         }
     }
 
+
     private Notification createNotification(String text) {
+        Intent stopBroadcastIntent = new Intent(ACTION_STOP_SERVICE);
+        stopBroadcastIntent.setComponent(new android.content.ComponentName(this, StopServiceReceiver.class));
+        PendingIntent stopPendingIntent = PendingIntent.getBroadcast(
+                this,
+                0,
+                stopBroadcastIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Background Counter")
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setOnlyAlertOnce(true)
+                .addAction(0, "停止計數器", stopPendingIntent)
                 .build();
+    }
+
+    public static class StopServiceReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (ACTION_STOP_SERVICE.equals(intent.getAction())) {
+                // To stop the service, we send an Intent to the service itself
+                Intent stopServiceIntent = new Intent(context, CounterService.class);
+                stopServiceIntent.setAction(ACTION_STOP_SERVICE);
+                context.startService(stopServiceIntent);
+                Log.d("StopServiceReceiver", "Stop action received, telling service to stop.");
+            }
+        }
     }
 
     private void updateNotification(String text) {

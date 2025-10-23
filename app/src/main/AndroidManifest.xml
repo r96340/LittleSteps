@@ -21,6 +21,11 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <receiver android:name=".CounterService$StopServiceReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.counterintuitive.littlesteps.STOP_SERVICE" />
+            </intent-filter>
+        </receiver>
         <activity
             android:name=".MainActivity"
             android:exported="true"
