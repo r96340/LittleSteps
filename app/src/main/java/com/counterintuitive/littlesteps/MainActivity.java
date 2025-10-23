@@ -1,13 +1,20 @@
 package com.counterintuitive.littlesteps;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -20,27 +27,19 @@ public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
-
-    //計數器變數
-    private int secondsPassed = 0;
-    private int cycle = 1;
-    private int subcycle = 1;
-    private Handler timerHandler = new Handler();
+    // 宣告主畫面計時器文字元件內容讀寫器
     private TextView counterTextView;
-    //計數器子程式
-    private Runnable timerRunnable = new Runnable() {
-        @Override
-        public void run() {
-            secondsPassed++;
-            counterTextView.setText("目標秒數 " + cycle + " 第 " + subcycle + " 輪\n" +
-                    secondsPassed + "\n 秒");
-            timerHandler.postDelayed(this, 1000);
-            if(secondsPassed == cycle){
-                secondsPassed = 0;
-                if(subcycle == cycle){ cycle++; subcycle = 1; } else subcycle++;
-            }
-        }
-    };
+    // 宣告接收器以接收來自計時器服務的廣播
+    private BroadcastReceiver counterUpdateReceiver;
+    // 宣告取得權限的回呼方法
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    startCounterService();
+                } else {
+
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,8 +48,20 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        //初始化計數器
+        //初始化計數器及其廣播接口
         counterTextView = findViewById(R.id.counter_text_view);
+        counterUpdateReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getAction() != null && intent.getAction().equals(CounterService.ACTION_COUNTER_UPDATE)) {
+                    String counterText = intent.getStringExtra(CounterService.EXTRA_COUNTER_TEXT);
+                    if (counterTextView != null) {
+                        counterTextView.setText(counterText);
+                    }
+                }
+            }
+        };
+        startCounterServiceWithPermissionCheck();
 
         setSupportActionBar(binding.toolbar);
 
@@ -68,15 +79,54 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    protected void onStart() {
-        super.onStart();
-        timerHandler.post(timerRunnable);
+    private void startCounterServiceWithPermissionCheck() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
+            requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS);
+        } else {
+            startCounterService();
+        }
     }
 
-    protected void onStop() {
-        super.onStop();
-        timerHandler.removeCallbacks(timerRunnable);
+    private void startCounterService() {
+        Intent serviceIntent = new Intent(this, CounterService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(this).registerReceiver(counterUpdateReceiver,
+                new IntentFilter(CounterService.ACTION_COUNTER_UPDATE));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(counterUpdateReceiver);
+    }
+
+//    @Override
+//    protected void onStart() {
+//        super.onStart();
+//        LocalBroadcastManager.getInstance(this).registerReceiver(counterUpdateReceiver,
+//                new IntentFilter(CounterService.ACTION_COUNTER_UPDATE));
+//    }
+
+//    @Override
+//    protected void onDestroy() {
+//        super.onDestroy();
+//        LocalBroadcastManager.getInstance(this).unregisterReceiver(counterUpdateReceiver);
+//    }
+
+//    @Override
+//    protected void onStop() {
+//        super.onStop();
+//        LocalBroadcastManager.getInstance(this).unregisterReceiver(counterUpdateReceiver);
+//    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
