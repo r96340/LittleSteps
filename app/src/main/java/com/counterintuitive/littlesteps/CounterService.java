@@ -37,7 +37,7 @@ public class CounterService extends Service {
     // 宣告通知相關常數
     public static final String ACTION_COUNTER_UPDATE = "com.counterintuitive.littlesteps.COUNTER_UPDATE";
     public static final String EXTRA_COUNTER_TEXT = "extra_counter_text";
-    private static final String CHANNEL_ID = "CounterServiceChannel";
+    private static final String CHANNEL_ID = "CounterChannel";
     private static final int NOTIFICATION_ID = 1;
 
     // 宣告計數器相關變數
@@ -73,7 +73,6 @@ public class CounterService extends Service {
             updateNotification(counterText);
             // 將計數器的狀態更新到主UI
             sendBroadcastToActivity(counterText);
-
             // 對數式遞增計數器
             if (secondsPassed == cycle) {
                 secondsPassed = 0;
@@ -153,12 +152,12 @@ public class CounterService extends Service {
     }
 
     private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel serviceChannel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Counter Service Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel serviceChannel = new NotificationChannel(
+                        CHANNEL_ID,
+                        "計時器通知",
+                        NotificationManager.IMPORTANCE_HIGH
+                );
             notificationManager.createNotificationChannel(serviceChannel);
         }
     }
@@ -173,16 +172,20 @@ public class CounterService extends Service {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
         int color = shouldRest ? Color.BLUE : Color.RED;
-        boolean shouldRing = !isSubcycleRenewed;
-        if (isSubcycleRenewed) vibrate(getApplicationContext());
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Background Counter")
-                .setContentText(text)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setColor(color)
-                .setOnlyAlertOnce(true)
-                .addAction(0, "停止計數器", stopPendingIntent)
-                .build();
+        NotificationCompat.Builder notification =
+                new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle("Background Counter")
+                    .setContentText(text)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setColor(color)
+                    .setOnlyAlertOnce(true)
+                    .addAction(0, "停止計數器", stopPendingIntent);
+        if (isSubcycleRenewed) {
+            Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            notification.setOnlyAlertOnce(false)
+                    .setSound(alarmSound);
+        }
+         return notification.build();
     }
 
     public static class StopServiceReceiver extends BroadcastReceiver {
@@ -208,16 +211,16 @@ public class CounterService extends Service {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
-    private void vibrate(Context context) {
-        try {
-            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
-            } else {
-                v.vibrate(500);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+//    private void vibrate(Context context) {
+//        try {
+//            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+//            } else {
+//                v.vibrate(500);
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 }
