@@ -47,6 +47,8 @@ public class CounterService extends Service {
     private final Handler timerHandler = new Handler();
     private NotificationManager notificationManager;
     private boolean shouldRest = false;
+    private boolean isSubcycleRenewed = false;
+
 
     // 宣告停止按鈕的廣播接收器
     public static final String ACTION_STOP_SERVICE = "com.counterintuitive.littlesteps.STOP_SERVICE";
@@ -75,16 +77,11 @@ public class CounterService extends Service {
             // 對數式遞增計數器
             if (secondsPassed == cycle) {
                 secondsPassed = 0;
-                if (subcycle == cycle) {
-                    cycle++;
-                    subcycle = 1;
-                } else {
-                    subcycle++;
-                }
+                if (subcycle == cycle) { cycle++; subcycle = 1; } else subcycle++;
                 shouldRest = !shouldRest;
-                playSound(getApplicationContext());
-            }
-
+                isSubcycleRenewed = true;
+                vibrate(getApplicationContext());
+            } else isSubcycleRenewed = false;
             timerHandler.postDelayed(this, 1000);
         }
     };
@@ -167,7 +164,6 @@ public class CounterService extends Service {
         }
     }
 
-
     private Notification createNotification(String text) {
         Intent stopBroadcastIntent = new Intent(ACTION_STOP_SERVICE);
         stopBroadcastIntent.setComponent(new android.content.ComponentName(this, StopServiceReceiver.class));
@@ -178,6 +174,7 @@ public class CounterService extends Service {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
         int color = shouldRest ? Color.BLUE : Color.RED;
+        boolean shouldRing = !isSubcycleRenewed;
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Background Counter")
                 .setContentText(text)
@@ -211,13 +208,8 @@ public class CounterService extends Service {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
-    private void playSound(Context context) {
+    private void vibrate(Context context) {
         try {
-            // 通知音
-            Uri notificationSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            Ringtone r = RingtoneManager.getRingtone(context, notificationSoundUri);
-            r.play();
-            // 震動
             Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
