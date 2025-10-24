@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
@@ -22,6 +23,7 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.counterintuitive.littlesteps.databinding.ActivityMainBinding;
 import com.google.android.material.snackbar.Snackbar;
+import android.provider.Settings;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -32,12 +34,24 @@ public class MainActivity extends AppCompatActivity {
     // 宣告接收器以接收來自計時器服務的廣播
     private BroadcastReceiver counterUpdateReceiver;
     // 宣告取得權限的回呼方法
+    // 通知
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
                     startCounterService();
                 } else {
 
+                }
+            });
+
+    private final ActivityResultLauncher<Intent> overlayPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (Settings.canDrawOverlays(this)) {
+                        startOverlayService();
+                    } else {
+
+                    }
                 }
             });
 
@@ -72,9 +86,7 @@ public class MainActivity extends AppCompatActivity {
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAnchorView(R.id.fab)
-                        .setAction("Action", null).show();
+                checkOverlayPermissionAndShow();
             }
         });
     }
@@ -126,6 +138,28 @@ public class MainActivity extends AppCompatActivity {
 //    protected void onStop() {
 //        super.onStop();
 //        LocalBroadcastManager.getInstance(this).unregisterReceiver(counterUpdateReceiver);
+//    }
+
+    private void checkOverlayPermissionAndShow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(this)) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + getPackageName()));
+                overlayPermissionLauncher.launch(intent);
+            } else {
+                startOverlayService();
+            }
+        } else {
+            startOverlayService();
+        }
+    }
+
+    private void startOverlayService() {
+        startService(new Intent(this, OverlayService.class));
+    }
+
+//    private void stopOverlayService() {
+//        stopService(new Intent(this, OverlayService.class));
 //    }
 
     @Override

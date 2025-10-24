@@ -36,6 +36,7 @@ public class CounterService extends Service {
     // 宣告通知相關常數
     public static final String ACTION_COUNTER_UPDATE = "com.counterintuitive.littlesteps.COUNTER_UPDATE";
     public static final String EXTRA_COUNTER_TEXT = "extra_counter_text";
+    public static final String EXTRA_SHOULD_REST = "extra_should_rest";
     private static final String CHANNEL_ID = "CounterChannel";
     private static final int NOTIFICATION_ID = 1;
 
@@ -125,7 +126,7 @@ public class CounterService extends Service {
         Log.d("CounterService", "Counter state loaded.");
     }
 
-    private void resetCounterState() {
+    public void resetCounterState() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.clear();
@@ -153,7 +154,7 @@ public class CounterService extends Service {
                 NotificationChannel serviceChannel = new NotificationChannel(
                         CHANNEL_ID,
                         "計時器通知",
-                        NotificationManager.IMPORTANCE_HIGH
+                        NotificationManager.IMPORTANCE_DEFAULT
                 );
             notificationManager.createNotificationChannel(serviceChannel);
         }
@@ -205,6 +206,7 @@ public class CounterService extends Service {
     private void sendBroadcastToActivity(String counterText) {
         Intent intent = new Intent(ACTION_COUNTER_UPDATE);
         intent.putExtra(EXTRA_COUNTER_TEXT, counterText);
+        intent.putExtra(EXTRA_SHOULD_REST, shouldRest);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
