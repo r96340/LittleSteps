@@ -48,6 +48,8 @@ public class CounterService extends Service {
     private NotificationManager notificationManager;
     private boolean shouldRest = false;
     private boolean isSubcycleRenewed = false;
+    public static final String ACTION_RESET = "com.counterintuitive.littlesteps.ACTION_RESET";
+    private boolean isResetting = false;
 
 
     // 宣告停止按鈕的廣播接收器
@@ -99,6 +101,9 @@ public class CounterService extends Service {
         if (intent != null && ACTION_STOP_SERVICE.equals(intent.getAction())) {
             Log.d("CounterService", "Stopping service from onStartCommand.");
             stopForeground(true);
+            if (intent != null && ACTION_RESET.equals(intent.getAction())) {
+                isResetting = true;
+            }
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -129,8 +134,8 @@ public class CounterService extends Service {
     public void resetCounterState() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
-        editor.clear();
-        editor.apply();
+        editor.putInt("cycle", 1);
+        editor.putInt("subcycle", 1);
         Log.d("CounterService", "Counter state reset.");
     }
 
@@ -139,7 +144,9 @@ public class CounterService extends Service {
         super.onDestroy();
         timerHandler.removeCallbacks(timerRunnable);
         unregisterReceiver(stopServiceReceiver);
-        saveCounterState();
+        if (!isResetting) {
+            saveCounterState();
+        }
         Log.d("CounterService", "Service destroyed.");
     }
 

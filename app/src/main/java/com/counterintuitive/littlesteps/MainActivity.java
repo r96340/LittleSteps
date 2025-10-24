@@ -1,12 +1,18 @@
 package com.counterintuitive.littlesteps;
 
+import static android.content.ContentValues.TAG;
+
+import static com.counterintuitive.littlesteps.CounterService.ACTION_RESET;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,6 +30,7 @@ import androidx.navigation.ui.NavigationUI;
 import com.counterintuitive.littlesteps.databinding.ActivityMainBinding;
 import com.google.android.material.snackbar.Snackbar;
 import android.provider.Settings;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -164,24 +171,43 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
-
+        if (id == R.id.action_reset) {
+            resetCounterAndPreferences();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void stopCounterService(boolean isResetting) {
+        Intent serviceIntent = new Intent(this, CounterService.class);
+        if (isResetting) {
+            serviceIntent.setAction(CounterService.ACTION_STOP_SERVICE);
+            stopService(serviceIntent);
+            serviceIntent.setAction(CounterService.ACTION_RESET);
+            stopService(serviceIntent);
+        }
+    }
+
+    private void resetCounterAndPreferences() {
+        stopCounterService(true);
+        SharedPreferences prefs = getSharedPreferences("CounterServicePrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt("cycle", 1);
+        editor.putInt("subcycle", 1);
+        editor.commit();
+        if (counterTextView != null) {
+            counterTextView.setText("請重新啟動應用程式以重啟計時");
+        }
     }
 
     @Override
