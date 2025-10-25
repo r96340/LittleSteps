@@ -104,7 +104,7 @@ public class CounterService extends Service {
             stopSelf();
             return START_NOT_STICKY;
         }
-        loadCounterState();
+        timerHandler.removeCallbacks(timerRunnable);
         Notification notification = createNotification("Counter service is running...");
         startForeground(NOTIFICATION_ID, notification);
         timerHandler.post(timerRunnable);
@@ -125,6 +125,7 @@ public class CounterService extends Service {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         cycle = prefs.getInt(KEY_CYCLE, 1);
         subcycle = prefs.getInt(KEY_SUBCYCLE, 1);
+        secondsPassed = 0;
         Log.d("CounterService", "Counter state loaded.");
     }
 
