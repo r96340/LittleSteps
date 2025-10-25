@@ -182,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         if (id == R.id.action_reset) {
-            resetCounterAndPreferences();
+//            resetCounterAndPreferences();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -195,18 +195,6 @@ public class MainActivity extends AppCompatActivity {
             stopService(serviceIntent);
             serviceIntent.setAction(CounterService.ACTION_RESET);
             stopService(serviceIntent);
-        }
-    }
-
-    private void resetCounterAndPreferences() {
-        stopCounterService(true);
-        SharedPreferences prefs = getSharedPreferences("CounterServicePrefs", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt("cycle", 1);
-        editor.putInt("subcycle", 1);
-        editor.commit();
-        if (counterTextView != null) {
-            counterTextView.setText("請重新啟動應用程式以重啟計時");
         }
     }
 

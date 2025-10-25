@@ -101,9 +101,6 @@ public class CounterService extends Service {
         if (intent != null && ACTION_STOP_SERVICE.equals(intent.getAction())) {
             Log.d("CounterService", "Stopping service from onStartCommand.");
             stopForeground(true);
-            if (intent != null && ACTION_RESET.equals(intent.getAction())) {
-                isResetting = true;
-            }
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -144,9 +141,7 @@ public class CounterService extends Service {
         super.onDestroy();
         timerHandler.removeCallbacks(timerRunnable);
         unregisterReceiver(stopServiceReceiver);
-        if (!isResetting) {
-            saveCounterState();
-        }
+        saveCounterState();
         Log.d("CounterService", "Service destroyed.");
     }
 
