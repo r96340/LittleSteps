@@ -1,5 +1,6 @@
 package com.counterintuitive.littlesteps;
 
+import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -211,6 +212,18 @@ public class CounterService extends Service {
         intent.putExtra(EXTRA_COUNTER_TEXT, counterText);
         intent.putExtra(EXTRA_SHOULD_REST, shouldRest);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+    public static boolean isRunning(Context context) {
+        ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        if (manager != null) {
+            for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+                if (CounterService.class.getName().equals(service.service.getClassName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 //    private void vibrate(Context context) {

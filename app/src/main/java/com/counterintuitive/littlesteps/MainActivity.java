@@ -107,11 +107,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startCounterService() {
-        Intent serviceIntent = new Intent(this, CounterService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
+        if (!CounterService.isRunning(this)) {
+            Intent serviceIntent = new Intent(this, CounterService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
         }
     }
 
