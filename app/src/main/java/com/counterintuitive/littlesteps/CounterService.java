@@ -18,6 +18,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
@@ -51,6 +52,7 @@ public class CounterService extends Service {
     private boolean isSubcycleRenewed = false;
     public static final String ACTION_RESET = "com.counterintuitive.littlesteps.ACTION_RESET";
     private boolean isResetting = false;
+    private PowerManager.WakeLock wakeLock;
 
 
     // 宣告停止按鈕的廣播接收器
@@ -92,6 +94,9 @@ public class CounterService extends Service {
     public void onCreate() {
         super.onCreate();
         notificationManager = getSystemService(NotificationManager.class);
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "LittleSteps::CounterWakelockTag");
+        wakeLock.acquire(16*60*60*1000L);
         loadCounterState();
         createNotificationChannel();
         registerReceiver(stopServiceReceiver, new IntentFilter(ACTION_STOP_SERVICE), RECEIVER_NOT_EXPORTED);
@@ -144,6 +149,9 @@ public class CounterService extends Service {
         timerHandler.removeCallbacks(timerRunnable);
         unregisterReceiver(stopServiceReceiver);
         saveCounterState();
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
         Log.d("CounterService", "Service destroyed.");
     }
 
