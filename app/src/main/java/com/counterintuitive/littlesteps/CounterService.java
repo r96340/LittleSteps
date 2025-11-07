@@ -22,6 +22,7 @@ import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -39,6 +40,7 @@ public class CounterService extends Service {
     public static final String ACTION_COUNTER_UPDATE = "com.counterintuitive.littlesteps.COUNTER_UPDATE";
     public static final String EXTRA_COUNTER_TEXT = "extra_counter_text";
     public static final String EXTRA_SHOULD_REST = "extra_should_rest";
+    static final String EXTRA_TASK_COLOR = "extra_task_color";
     private static final String CHANNEL_ID = "CounterChannel";
     private static final int NOTIFICATION_ID = 1;
 
@@ -49,6 +51,7 @@ public class CounterService extends Service {
     private final Handler timerHandler = new Handler();
     private NotificationManager notificationManager;
     private boolean shouldRest = false;
+    private int taskColor = Color.RED;
     private boolean isSubcycleRenewed = false;
     public static final String ACTION_RESET = "com.counterintuitive.littlesteps.ACTION_RESET";
     private boolean isResetting = false;
@@ -83,6 +86,14 @@ public class CounterService extends Service {
                 secondsPassed = 0;
                 if (subcycle == cycle) { cycle++; subcycle = 1; } else subcycle++;
                 shouldRest = !shouldRest;
+                // 管理作業提示顏色
+                if(!shouldRest){
+                    if(taskColor == Color.RED){
+                        taskColor = Color.GREEN;
+                    } else {
+                        taskColor = Color.RED;
+                    }
+                }
                 isSubcycleRenewed = true;
             } else isSubcycleRenewed = false;
             timerHandler.postDelayed(this, 1000);
@@ -181,7 +192,7 @@ public class CounterService extends Service {
                 stopBroadcastIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
-        int color = shouldRest ? Color.BLUE : Color.RED;
+        int color = shouldRest ? Color.BLUE : taskColor;
         NotificationCompat.Builder notification =
                 new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setContentTitle("Background Counter")
@@ -219,6 +230,7 @@ public class CounterService extends Service {
         Intent intent = new Intent(ACTION_COUNTER_UPDATE);
         intent.putExtra(EXTRA_COUNTER_TEXT, counterText);
         intent.putExtra(EXTRA_SHOULD_REST, shouldRest);
+        intent.putExtra(EXTRA_TASK_COLOR, taskColor);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 

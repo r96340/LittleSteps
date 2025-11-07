@@ -15,6 +15,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -23,6 +24,9 @@ public class OverlayService extends Service {
     private View overlayView;
     private BroadcastReceiver counterUpdateReceiver;
     private WindowManager.LayoutParams params;
+
+    public static final String EXTRA_SHOULD_REST = "com.counterintuitive.littlesteps.EXTRA_SHOULD_REST";
+    public static final String EXTRA_TASK_COLOR = "com.counterintuitive.littlesteps.EXTRA_TASK_COLOR";
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -69,13 +73,17 @@ public class OverlayService extends Service {
             public void onReceive(Context context, Intent intent) {
                 if (intent != null && CounterService.ACTION_COUNTER_UPDATE.equals(intent.getAction())) {
                     boolean shouldRest = intent.getBooleanExtra(CounterService.EXTRA_SHOULD_REST, false);
+                    int taskColor = intent.getIntExtra(CounterService.EXTRA_TASK_COLOR, Color.WHITE);
                     if (overlayView != null) {
                         View root = overlayView.findViewById(R.id.overlay_root);
+                        int backgroundColor;
                         if (shouldRest) {
-                            root.setBackgroundColor(Color.parseColor("#880000FF"));
+                            backgroundColor = Color.parseColor("#880000FF");
                         } else {
-                            root.setBackgroundColor(Color.parseColor("#88FF0000"));
+                            int alpha = 136; // 透明度 #88 的十進位值
+                            backgroundColor = Color.argb(alpha, Color.red(taskColor), Color.green(taskColor), Color.blue(taskColor));
                         }
+                        root.setBackgroundColor(backgroundColor);
                     }
                 }
             }
@@ -118,5 +126,6 @@ public class OverlayService extends Service {
         if (overlayView != null) {
             windowManager.removeView(overlayView);
         }
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(counterUpdateReceiver);
     }
 }
