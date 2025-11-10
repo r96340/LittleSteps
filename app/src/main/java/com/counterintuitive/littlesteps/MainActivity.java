@@ -28,6 +28,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.counterintuitive.littlesteps.databinding.ActivityMainBinding;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.snackbar.Snackbar;
 import android.provider.Settings;
 import android.widget.Toast;
@@ -190,14 +191,14 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void stopCounterService(boolean isResetting) {
-        Intent serviceIntent = new Intent(this, CounterService.class);
-        if (isResetting) {
-            serviceIntent.setAction(CounterService.ACTION_STOP_SERVICE);
-            stopService(serviceIntent);
-            serviceIntent.setAction(CounterService.ACTION_RESET);
-            stopService(serviceIntent);
-        }
+    public void showInputCard(View view) {
+        MaterialCardView inputCardView = findViewById(R.id.input_card_view);
+        inputCardView.setVisibility(View.VISIBLE);
+    }
+
+    public void applySettingsAndStopService(View view) {
+        Intent stopIntent = new Intent(this, CounterService.class);
+        stopService(stopIntent);
     }
 
     @Override
