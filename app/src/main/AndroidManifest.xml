@@ -23,10 +23,6 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
-        <provider
-            android:name=".CounterProvider"
-            android:authorities="com.counterintuitive.littlesteps.provider"
-            android:exported="false" />
         <service android:name=".OverlayService" />
         <receiver android:name=".CounterService$StopServiceReceiver" android:exported="false">
             <intent-filter>
