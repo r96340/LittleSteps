@@ -197,8 +197,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void applySettingsAndStopService(View view) {
-        Intent intent = new Intent(CounterService.ACTION_PAUSE_SAVE_RESUME);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        String cycleStr = binding.cycleInput.getText().toString();
+
+        try {
+            int cycle = Integer.parseInt(cycleStr);
+            Intent intent = new Intent(CounterService.ACTION_PAUSE_SAVE_RESUME);
+            intent.putExtra("cycle", cycle);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+
+        } catch (NumberFormatException e) {
+            Log.d("MainActivity", "Invalid input. Not an integer.");
+            Toast.makeText(this, "請輸入有效的整數", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override

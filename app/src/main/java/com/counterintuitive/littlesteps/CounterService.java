@@ -81,7 +81,8 @@ public class CounterService extends Service {
             if (ACTION_PAUSE_SAVE_RESUME.equals(intent.getAction())) {
                 timerHandler.removeCallbacks(timerRunnable);
                 Log.d("CounterService", "Counting suspended.");
-                saveCounterState(1, 1);
+                int c = intent.getIntExtra("cycle", cycle);
+                saveCounterState(c, 1);
                 secondsPassed = 0;
                 timerHandler.post(timerRunnable);
                 Log.d("CounterService", "Counting resumed.");
