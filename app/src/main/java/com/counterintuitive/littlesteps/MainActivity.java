@@ -197,8 +197,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void applySettingsAndStopService(View view) {
-        Intent stopIntent = new Intent(this, CounterService.class);
-        stopService(stopIntent);
+        Intent intent = new Intent(CounterService.ACTION_PAUSE_SAVE_RESUME);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     @Override

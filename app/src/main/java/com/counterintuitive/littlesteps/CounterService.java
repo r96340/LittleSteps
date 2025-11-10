@@ -7,6 +7,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -72,6 +73,22 @@ public class CounterService extends Service {
         }
     };
 
+    // 宣告手動設定值的廣播接收器
+    public static final String ACTION_PAUSE_SAVE_RESUME = "com.counterintuitive.littlesteps.PAUSE_SAVE_RESUME";
+    private final BroadcastReceiver pauseSaveResumeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (ACTION_PAUSE_SAVE_RESUME.equals(intent.getAction())) {
+                timerHandler.removeCallbacks(timerRunnable);
+                Log.d("CounterService", "Counting suspended.");
+                saveCounterState(1, 1);
+                secondsPassed = 0;
+                timerHandler.post(timerRunnable);
+                Log.d("CounterService", "Counting resumed.");
+            }
+        }
+    };
+
     private final Runnable timerRunnable = new Runnable() {
         @Override
         public void run() {
@@ -111,6 +128,9 @@ public class CounterService extends Service {
         loadCounterState();
         createNotificationChannel();
         registerReceiver(stopServiceReceiver, new IntentFilter(ACTION_STOP_SERVICE), RECEIVER_NOT_EXPORTED);
+        IntentFilter pauseSaveResumeFilter = new IntentFilter(ACTION_PAUSE_SAVE_RESUME);
+        LocalBroadcastManager.getInstance(this).registerReceiver(pauseSaveResumeReceiver, pauseSaveResumeFilter);
+
     }
 
     @Override
@@ -129,11 +149,13 @@ public class CounterService extends Service {
         return START_STICKY;
     }
 
-    private void saveCounterState() {
+    public void saveCounterState(int c, int s) {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt(KEY_CYCLE, cycle);
-        editor.putInt(KEY_SUBCYCLE, subcycle);
+        editor.putInt(KEY_CYCLE, c);
+        editor.putInt(KEY_SUBCYCLE, s);
+        cycle = c;
+        subcycle = s;
         editor.apply();
         Log.d("CounterService", "Counter state saved.");
     }
@@ -146,20 +168,12 @@ public class CounterService extends Service {
         Log.d("CounterService", "Counter state loaded.");
     }
 
-    public void resetCounterState() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt("cycle", 1);
-        editor.putInt("subcycle", 1);
-        Log.d("CounterService", "Counter state reset.");
-    }
-
     @Override
     public void onDestroy() {
         super.onDestroy();
         timerHandler.removeCallbacks(timerRunnable);
         unregisterReceiver(stopServiceReceiver);
-        saveCounterState();
+        saveCounterState(cycle, subcycle);
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
