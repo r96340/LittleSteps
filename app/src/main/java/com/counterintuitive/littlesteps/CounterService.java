@@ -237,6 +237,7 @@ public class CounterService extends Service {
     }
 
     private void updateNotification(String text) {
+        Log.d("CounterService", "updateNotification triggered");
         Notification notification = createNotification(text);
         notificationManager.notify(NOTIFICATION_ID, notification);
     }
