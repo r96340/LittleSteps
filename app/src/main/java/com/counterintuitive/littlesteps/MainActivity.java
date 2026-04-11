@@ -201,9 +201,19 @@ public class MainActivity extends AppCompatActivity {
 
         try {
             int cycle = Integer.parseInt(cycleStr);
-            Intent intent = new Intent(CounterService.ACTION_PAUSE_SAVE_RESUME);
-            intent.putExtra("cycle", cycle);
-            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+            Intent serviceIntent = new Intent(this, CounterService.class);
+            serviceIntent.setAction(CounterService.ACTION_PAUSE_SAVE_RESUME);
+            serviceIntent.putExtra("cycle", cycle);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+            if (CounterService.isRunning(this)) {
+                Intent broadcastIntent = new Intent(CounterService.ACTION_PAUSE_SAVE_RESUME);
+                broadcastIntent.putExtra("cycle", cycle);
+                LocalBroadcastManager.getInstance(this).sendBroadcast(broadcastIntent);
+            }
 
         } catch (NumberFormatException e) {
             Log.d("MainActivity", "Invalid input. Not an integer.");

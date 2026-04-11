@@ -24,9 +24,10 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
         <service android:name=".OverlayService" />
-        <receiver android:name=".CounterService$StopServiceReceiver" android:exported="false">
+        <receiver android:name=".CounterService$StopServiceReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="com.counterintuitive.littlesteps.STOP_SERVICE" />
+                <action android:name="com.counterintuitive.littlesteps.PAUSE_SAVE_RESUME" />
             </intent-filter>
         </receiver>
         <activity

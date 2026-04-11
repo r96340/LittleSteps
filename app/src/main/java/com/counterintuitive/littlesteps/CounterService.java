@@ -62,34 +62,9 @@ public class CounterService extends Service {
 
     // 宣告停止按鈕的廣播接收器
     public static final String ACTION_STOP_SERVICE = "com.counterintuitive.littlesteps.STOP_SERVICE";
-    private final BroadcastReceiver stopServiceReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (ACTION_STOP_SERVICE.equals(intent.getAction())) {
-                timerHandler.removeCallbacks(timerRunnable);
-                stopForeground(true);
-                stopSelf();
-                Log.d("CounterService", "Service stopped via notification action.");
-            }
-        }
-    };
 
     // 宣告手動設定值的廣播接收器
     public static final String ACTION_PAUSE_SAVE_RESUME = "com.counterintuitive.littlesteps.PAUSE_SAVE_RESUME";
-    private final BroadcastReceiver pauseSaveResumeReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (ACTION_PAUSE_SAVE_RESUME.equals(intent.getAction())) {
-                timerHandler.removeCallbacks(timerRunnable);
-                Log.d("CounterService", "Counting suspended.");
-                int c = intent.getIntExtra("cycle", cycle);
-                saveCounterState(c, 1);
-                secondsPassed = 0;
-                timerHandler.post(timerRunnable);
-                Log.d("CounterService", "Counting resumed.");
-            }
-        }
-    };
 
     private final Runnable timerRunnable = new Runnable() {
         @Override
@@ -129,28 +104,48 @@ public class CounterService extends Service {
         wakeLock.acquire(16*60*60*1000L);
         loadCounterState();
         createNotificationChannel();
-        registerReceiver(stopServiceReceiver, new IntentFilter(ACTION_STOP_SERVICE), RECEIVER_NOT_EXPORTED);
         IntentFilter pauseSaveResumeFilter = new IntentFilter(ACTION_PAUSE_SAVE_RESUME);
-        LocalBroadcastManager.getInstance(this).registerReceiver(pauseSaveResumeReceiver, pauseSaveResumeFilter);
-
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && ACTION_STOP_SERVICE.equals(intent.getAction())) {
-            Log.d("CounterService", "Stopping service from onStartCommand.");
-            isServiceStopping = true;
-            timerHandler.removeCallbacks(timerRunnable);
-            stopForeground(true);
-            stopSelf();
-            return START_NOT_STICKY;
+        if (intent != null) {
+            String action = intent.getAction();
+
+            if (ACTION_STOP_SERVICE.equals(action)) {
+                isServiceStopping = true;
+                timerHandler.removeCallbacks(timerRunnable);
+                stopForeground(true);
+                stopSelf();
+                return START_NOT_STICKY;
+            }
+
+            if (ACTION_PAUSE_SAVE_RESUME.equals(action)) {
+                isServiceStopping = false;
+                int newCycle = intent.getIntExtra("cycle", cycle);
+                updateInternalState(newCycle);
+                String counterText = "目標秒數 " + cycle + " 第 " + subcycle + " 輪\n" + secondsPassed + " 秒";
+                startForeground(NOTIFICATION_ID, createNotification(counterText));
+                timerHandler.removeCallbacks(timerRunnable);
+                timerHandler.post(timerRunnable);
+                return START_NOT_STICKY;
+            }
         }
+
+        isServiceStopping = false;
+        startForeground(NOTIFICATION_ID, createNotification("準備中..."));
+
         timerHandler.removeCallbacks(timerRunnable);
-        Notification notification = createNotification("Counter service is running...");
-        startForeground(NOTIFICATION_ID, notification);
         timerHandler.post(timerRunnable);
-        Log.d("CounterService", "Service started.");
-        return START_STICKY;
+
+        return START_NOT_STICKY;
+    }
+
+    private void updateInternalState(int newCycle) {
+        this.cycle = newCycle;
+        this.subcycle = 1;
+        this.secondsPassed = 0;
+        saveCounterState(newCycle, 1);
     }
 
     public void saveCounterState(int c, int s) {
@@ -176,7 +171,6 @@ public class CounterService extends Service {
     public void onDestroy() {
         super.onDestroy();
         timerHandler.removeCallbacks(timerRunnable);
-        unregisterReceiver(stopServiceReceiver);
         saveCounterState(cycle, subcycle);
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
@@ -230,11 +224,21 @@ public class CounterService extends Service {
     public static class StopServiceReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (ACTION_STOP_SERVICE.equals(intent.getAction())) {
-                Intent stopServiceIntent = new Intent(context, CounterService.class);
-                stopServiceIntent.setAction(ACTION_STOP_SERVICE);
-                context.startService(stopServiceIntent);
-                Log.d("StopServiceReceiver", "Stop action received, telling service to stop.");
+            String action = intent.getAction();
+            Intent serviceIntent = new Intent(context, CounterService.class);
+
+            if (ACTION_STOP_SERVICE.equals(action)) {
+                serviceIntent.setAction(ACTION_STOP_SERVICE);
+                context.startService(serviceIntent);
+            } else if (ACTION_PAUSE_SAVE_RESUME.equals(action)) {
+                serviceIntent.setAction(ACTION_PAUSE_SAVE_RESUME);
+                serviceIntent.putExtra("cycle", intent.getIntExtra("cycle", 1));
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent);
+                } else {
+                    context.startService(serviceIntent);
+                }
             }
         }
     }
