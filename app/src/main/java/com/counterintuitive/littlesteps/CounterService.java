@@ -56,6 +56,7 @@ public class CounterService extends Service {
     private boolean isSubcycleRenewed = false;
     public static final String ACTION_RESET = "com.counterintuitive.littlesteps.ACTION_RESET";
     private boolean isResetting = false;
+    private boolean isServiceStopping = false;
     private PowerManager.WakeLock wakeLock;
 
 
@@ -138,6 +139,8 @@ public class CounterService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && ACTION_STOP_SERVICE.equals(intent.getAction())) {
             Log.d("CounterService", "Stopping service from onStartCommand.");
+            isServiceStopping = true;
+            timerHandler.removeCallbacks(timerRunnable);
             stopForeground(true);
             stopSelf();
             return START_NOT_STICKY;
@@ -237,6 +240,7 @@ public class CounterService extends Service {
     }
 
     private void updateNotification(String text) {
+        if (isServiceStopping) return;
         Log.d("CounterService", "updateNotification triggered");
         Notification notification = createNotification(text);
         notificationManager.notify(NOTIFICATION_ID, notification);
